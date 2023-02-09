@@ -1,4 +1,4 @@
-# Module-9-Group-Project-CommuteME
+# Module-9-Group-Project-CommuteThings
 
 ## Overview
 
@@ -10,26 +10,22 @@ The group project is a collaboration between jamellknows and tascott to create a
 
 The following image shows a demo web application's appearance and functionality:
 
-![commuteMe demo]
 
-
+![Screenshot 2023-02-09 at 11 19 39](https://user-images.githubusercontent.com/18272434/217798917-1be756ba-e694-4538-8b07-77e0b8d6ee98.png)
 
 
 
 ## Instructions
 
-Calculate the time it will take to travel to your destination or maunally enter your journey time and receive content that will fill up for that specific length. Personalise your results by searching topics that interest you
-.
+Calculate the time it will take to travel to your destination or maunally enter your journey time and receive content that will fill up for that specific length. Personalise your results by searching topics that interest you.
 
-### Deployed At:
+### Deployed At: https://tascott.github.io/commute-me-2/
 
 
 
 ## License
 
 MIT License
-
-Copyright (c) [2022] [jamellknows]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
