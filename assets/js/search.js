@@ -38,7 +38,6 @@ let blogDiv = $('#blog-results');
 let articleModal = document.getElementById('article-modal');
 let stored_youtube_searches = userData.stored_youtube_searches
 let videoID
-let selection
 // Toggle between manual time entry and google search
 $('#manually-enter').click(function () {
     $('.search-time').show();
@@ -91,22 +90,6 @@ $('#search-button').click(function () {
     renderAllNews(newCall = true);
 });
 
-$('#search-youtube').click(youtubeSelection)
-
-
-function youtubeSelection(){
-    selection = $('#youtube-text').val()
-    let selectionEl = `<button class = "btn btn-primary" id="selection-element">${selection}</button>`
-    let removeEl = `<i style ="color: red; height: 20px; width: 20px;"class="fa-regular fa-circle-x"></i>`
-    $(removeEl).click(function(){
-        $('#youtube-selection').empty()
-    })
-    $('#youtube-selection').empty().append(selectionEl)
-    $('#youtube-selection').append(removeEl)
-
-
-}
-
 let renderAllNews = function (newCall) {
     let time;
     if (userData.time) {
@@ -116,6 +99,8 @@ let renderAllNews = function (newCall) {
 
     $('#news-results').empty().append(`<h4>Top Stories</h4>`);
     $('#sports-results').empty().append(`<h4>Sports</h4>`);
+    $('#video-results').empty();
+    $('#video-container').empty();
     if (stored_news == null) {
         stored_news = []
     }
@@ -135,7 +120,7 @@ let renderAllNews = function (newCall) {
             "url": "https://real-time-news-data.p.rapidapi.com/top-headlines?country=US&lang=en",
             "method": "GET",
             "headers": {
-                "X-RapidAPI-Key": news_api_key,
+                "X-RapidAPI-Key": "79525648bbmsh3acf864b288976cp1e3409jsn56c274c27ea0",
                 "X-RapidAPI-Host": "real-time-news-data.p.rapidapi.com"
             }
         };
@@ -206,7 +191,7 @@ let renderAllNews = function (newCall) {
         settings = {
             "async": true,
             "crossDomain": true,
-            "url": "https://api-football-v1.p.rapidapi.com/v3/fixtures?league=39&season=2022",
+            "url": "https://api-football-v1.p.rapidapi.com/v3/fixtures?league=39&season=2020",
             "method": "GET",
             "headers": {
                 "X-RapidAPI-Key": "289a29c09emsh67b645d76a420f4p19e2ffjsn3ff56d782897",
@@ -297,28 +282,23 @@ let renderAllNews = function (newCall) {
                 temp = temp + `</div></div>`
             }
         }
-            temp = sportsTemp + temp + tempEnd
-            $('#sports-results').append(temp)
+        temp = sportsTemp + temp + tempEnd
+        $('#sports-results').append(temp)
     }
 
     // If we have a topic but no data yet, fetch some data
     if ((stored_interests.length < 1 && userData.topics.length > 0) || newCall) {
-    // Fetch some results for interests
-        let pageNumber
-        if(time > 30){
-            pageNumber = 10
-        }
-        pageNumber = 5
+        // Fetch some results for interests
         let interests = userData.topics;
         interests.forEach((interest) => {
             queryString = new URLSearchParams(interest).toString();
             const settings = {
                 "async": true,
                 "crossDomain": true,
-                "url": `https://contextualwebsearch-websearch-v1.p.rapidapi.com/api/Search/ImageSearchAPI?q=${queryString}&pageNumber=1&pageSize=${pageNumber}&autoCorrect=true`,
+                "url": `https://contextualwebsearch-websearch-v1.p.rapidapi.com/api/Search/ImageSearchAPI?q=${queryString}&pageNumber=1&pageSize=10&autoCorrect=true`,
                 "method": "GET",
                 "headers": {
-                    "X-RapidAPI-Key": contextual_web_api_key,
+                    "X-RapidAPI-Key": "79525648bbmsh3acf864b288976cp1e3409jsn56c274c27ea0",
                     "X-RapidAPI-Host": "contextualwebsearch-websearch-v1.p.rapidapi.com"
                 }
             };
@@ -331,13 +311,13 @@ let renderAllNews = function (newCall) {
                 renderCustomInterests(userData.stored_interests);
             }).then(() => {
                 // Get blog content with the first interest
-                console.log('call medium API from search.js')
-                callMediumAPI(userData.topics[0]);
+                console.log('call medium API from search.js', newCall)
+                callMediumAPI(userData.topics[0], newCall);
             });
         })
     } else if (stored_interests.length > 0) {
         renderCustomInterests(userData.stored_interests);
-        callMediumAPI(userData.topics[0]);
+        callMediumAPI(userData.topics[0], newCall);
     }
 
     function renderCustomInterests() {
@@ -380,59 +360,30 @@ let renderAllNews = function (newCall) {
             }
         })
         temp = interestsTemp + temp + tempEnd
-        $('#interest-results').append(temp)
+        $('#interest-results').removeClass('hidden').append(temp);
     }
 
-    if(selection){
-        let number = time > 30 ? 10 : 5
-        youtube_search = selection
-        youtube_search = encodeURIComponent(youtube_search)
-        const settings = {
-            "async": true,
-            "crossDomain": true,
-            "url": `https://youtube-search6.p.rapidapi.com/search/?query=${youtube_search}&number=${number}&country=us&lang=en`,
-            "method": "GET",
-            "headers": {
-                "X-RapidAPI-Key": "79525648bbmsh3acf864b288976cp1e3409jsn56c274c27ea0",
-                "X-RapidAPI-Host": "youtube-search6.p.rapidapi.com"
-            }
-        };
-            
-        $.ajax(settings).done(function (response) {
-            stored_youtube_searches = response.videos
-            stored_youtube_searches = stored_youtube_searches.filter(function(elem){
-               if(elem.video_length.length > 5)
-               {
-                    let t= elem.video_length.split(':')
-                    let min = (+t[0]) * 60 + (+t[1])
-                    return min < time
-
-               }else{
-                let t = elem.video_length.split(':')
-                let min = (+t[0])
-                return min < time
-               } 
-            })
+    if (newCall) {
+        // Fetch some results for youtube
+        let youtube_search = userData.topics[0];
+        searchYoutube(youtube_search);
+    } else if (stored_youtube_searches.length > 0) {
+        renderAllVideoResults(stored_youtube_searches);
+    }
+}
+function searchYoutube(youtube_search) {
+    // fetch from youtube api
+    fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${youtube_search}&type=video&key=AIzaSyBdWjXYYmyEctduqjw4J8BTYuYDlLxOjm4`)
+        .then(response => response.json())
+        .then(function (response) {
+            stored_youtube_searches = response.items
             userData.stored_youtube_searches = stored_youtube_searches
             localStorage.setItem('userData', JSON.stringify(userData))
-            renderAllVideoResults(stored_youtube_searches)        
-            });
-        }
-        else if(stored_youtube_searches && !selection){
             renderAllVideoResults(stored_youtube_searches)
-        }
-    
+        });
+}
 
-    
-
-   
-};
-
-
-
-
-
-function renderAllVideoResults(stored_youtube_searches){
+function renderAllVideoResults(stored_youtube_searches) {
     let videoEl
     let videoMid = ``
     let videoTop = `<div id="carouselExampleControls4" class="carousel slide" data-ride="carousel">
@@ -448,52 +399,38 @@ function renderAllVideoResults(stored_youtube_searches){
             </a>
             </div>`
     let count = 0
-    if(stored_youtube_searches){
+    if (stored_youtube_searches) {
         $(stored_youtube_searches).each(function () {
             count++
-            let channel_id = $(this)[0].channel_id
-            let description = $(this)[0].description
-            let number_of_views = $(this)[0].number_of_views
-            let published_time = $(this)[0].published_time
-            let thumbnail = $(this)[0].thumbnails[0].url
+            let description = $(this)[0].snippet.description
+            let thumbnail = $(this)[0].snippet.thumbnails.high.url
 
-            let title = $(this)[0].title
-            let videoID = $(this)[0].video_id
-            let video_length = $(this)[0].video_length
+            //Note: if we want to get more details about the video, like length, there is a separate api call that we can make - https://www.googleapis.com/youtube/v3/videos?id=9bZkp7q19f0&part=contentDetails&key={YOUR_API_KEY}
+
+
+            let title = $(this)[0].snippet.title
+            let videoID = $(this)[0].id.videoId
             if (count == 1) {
                 videoMid = videoMid + `<div class="carousel-item active"><div class="carousel-item-inner video-result" style="background-image: url(); ">
                     <img class=""  src="${thumbnail}" alt="First slide">
                     <h5 class="video-title">${title}</h5>
-                    <p class=video-description">Description: ${description}</p>
-                    <p class="video-views">Number of Views: ${number_of_views}</p>
-                    <p class="video-published">Date Uploaded: ${published_time}</p>
-                    <p class="video-length">Video Length: ${video_length}</p>
+                    <p class=video-description"><span style="font-weight: bold">Description: </span>${description}</p>
                     <button data-source="${videoID}" id="video-button"class="video-button btn btn-primary">Watch Video</button>
                     </div></div>`
             } else {
                 videoMid = videoMid + `<div class="carousel-item"><div class="carousel-item-inner video-result" style="background-image: url()">
                      <img class="" onclick="getVideo()"src="${thumbnail}" alt="Next slide">
                     <h5 class="video-title">${title}</h5>
-                    <p class=video-description">Description: ${description}</p>
-                    <p class="video-views">Number of Views: ${number_of_views}</p>
-                    <p class="video-published">Date Uploaded: ${published_time}</p>
-                    <p class="video-length">Video Length: ${video_length}</p>
+                    <p class=video-description"><span style="font-weight: bold">Description: </span>${description}</p>
                     <button data-source="${videoID}" id="video-button" class="video-button btn btn-primary" >Watch Video</button>
                     </div></div>`
             }
         })
-        let videoHeader = `<h4>Video Results</h4>`
-    videoEl = videoHeader + videoTop + videoMid + videoEnd
-    $('#video-results').empty()
-    $('#video-results').append(videoEl)
-    
+        let videoHeader = `<h4>Personalised Video Results</h4>`
+        videoEl = videoHeader + videoTop + videoMid + videoEnd
+        $('#video-results').removeClass('hidden').append(videoEl)
     }
-
-
 }
-
-
-
 
 $(".results").on("click", "#video-button", function () {
     let id = $(this).attr('data-source')
@@ -502,10 +439,6 @@ $(".results").on("click", "#video-button", function () {
     $('.video-display').css('display','flex')
     $('.video-display').removeClass('hidden')
 })
-
-
-
-
 
 /*
 -------
@@ -517,7 +450,7 @@ function getRelatedWords(topicVal) {
     const options = {
         method: 'GET',
         headers: {
-            'X-RapidAPI-Key': words_api_key,
+            'X-RapidAPI-Key': "79525648bbmsh3acf864b288976cp1e3409jsn56c274c27ea0",
             'X-RapidAPI-Host': 'wordsapiv1.p.rapidapi.com'
         }
     };
@@ -620,20 +553,20 @@ Get offline-readable content from Medium API
 -------
 */
 
-function callMediumAPI(topicToSearch, refresh = false) {
+function callMediumAPI(topicToSearch, newCall) {
     const options = {
         method: 'GET',
         headers: {
-            'X-RapidAPI-Key': mediumAPIKey,
+            'X-RapidAPI-Key': "Y6mOPkrVeTmshov56U78JVCE5snep11DvrEjsnwycWXMGEwR5J",
             'X-RapidAPI-Host': 'medium2.p.rapidapi.com'
         }
     };
 
     //If we have content just render it
-    if (storedBlogPostContent.length) {
+    if (storedBlogPostContent.length && newCall === false) {
         // We have some content, render the divs
         renderBlogItems(storedBlogPostContent);
-    } else {
+    } else if (newCall) {
         // If we don't have any content, get it from the API
         let tempData = [];
         if (topicToSearch) {
@@ -646,7 +579,6 @@ function callMediumAPI(topicToSearch, refresh = false) {
                     if (userData.stored_blog_post_ids.length > 0) {
                         userData.stored_blog_post_ids = userData.stored_blog_post_ids.slice(0, 1);
                         userData.stored_blog_post_ids.forEach(function (id, index) {
-                            console.log('api call medium2, ', index)
                             //This API only gets the metadata
                             fetch(`https://medium2.p.rapidapi.com/article/${id}`, options)
                                 .then(response => response.json())
@@ -693,7 +625,7 @@ function renderBlogItems(list) {
         </div>
         `
 
-        blogDiv.html(html);
+        blogDiv.removeClass('hidden').html(html);
         blogDiv.prepend(`<h2>Personalised Blog Results</h2><h6>Available offline</h6>`);
     })
 };
